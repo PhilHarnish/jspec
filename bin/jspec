@@ -127,17 +127,21 @@ command :run do |c|
     # Actions
     if options.rhino
       suite = args.shift || path_to('spec.rhino.js')
-      action = lambda { exit rhino(suite) }
+      action = lambda {|file| exit rhino(file) }
     elsif options.server
       raise 'Cannot use --server with --bind' if options.bind
       suite = args.shift || path_to('spec.server.html')
-      action = lambda { start_server suite, options }
+      action = lambda {|file| start_server file, options }
     else
       suite = args.shift || path_to('spec.dom.html')
-      browsers = browsers_for options.browsers || ['safari']
-      action = lambda do
-        browsers.each do |browser|
-          browser.visit File.expand_path(suite)
+      action = lambda do |file|
+        if options.browsers
+          browsers = browsers_for options.browsers
+          browsers.each do |browser|
+            browser.visit file
+          end
+        else
+          system("start", file) unless system("open", file)
         end
       end
     end
@@ -147,7 +151,7 @@ command :run do |c|
       listener = Bind::Listener.new :paths => options.paths, :interval => 1, :actions => [action], :debug => $stdout
       listener.run!
     else
-      action.call File.new(suite)
+      action.call File.expand_path(suite)
     end
   end
 end
